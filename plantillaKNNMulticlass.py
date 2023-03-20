@@ -265,6 +265,10 @@ if __name__ == '__main__':
     testY = np.array(test['__target__'])
 
 
+    # sampling_strategy = {'Ancho de sepalo': 0.5, 'Largo de sepalo': 0.5, 'Largo de petalo': 0.5, 'Ancho de petalo': 0.5}
+    # undersample = RandomUnderSampler(sampling_strategy=sampling_strategy)
+    # trainXUnder, trainYUnder = undersample.fit_resample(trainX, trainY)
+    # testXUnder, testYUnder = undersample.fit_resample(testX, testY)
 
 
 
