@@ -7,4 +7,4 @@ s = 'a'
 for p in P:
     for k in K:
         for w in weights:
-            subprocess.run(['python', 'plantillaKNNBinaria.py', str(p), str(k),w,s])
+            subprocess.run(['python', 'plantillaKNNBinaria.py',str(k),str(p),w,"a","-p"])
