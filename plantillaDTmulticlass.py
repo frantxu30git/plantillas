@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     print('ARGV   :',sys.argv[1:])
     try:
-        options,remainder = getopt.getopt(sys.argv[1:],'o:k:d:p:f:h',['output=','k=','d=','path=','iFile','h'])
+        options,remainder = getopt.getopt(sys.argv[1:],'o:d:D:k:K:a:s:p:f:h:',['output=','k=','K=','d=','a='])
     except getopt.GetoptError as err:
         print('ERROR:',err)
         sys.exit(1)
@@ -53,15 +53,23 @@ if __name__ == '__main__':
         if opt in ('-o','--output'):
             oFile = arg
         elif opt == '-k':
-            k = arg
+            Kmin = int(arg)
+        elif opt == '-K':
+            Kmax = int(arg)
         elif opt ==  '-d':
-            d = arg
+            Dmin = int(arg)
+        elif opt ==  '-D':
+            Dmax = int(arg)
+        elif opt == '-a':
+            alg= arg
+        elif opt == '-s':
+            saltarPreproceso= arg
         elif opt in ('-p', '--path'):
             p = arg
         elif opt in ('-f', '--file'):
             f = arg
         elif opt in ('-h','--help'):
-            print(' -o outputFile \n -k numberOfItems \n -d distanceParameter \n -p inputFilePath \n -f inputFileName \n ')
+            print('-k Kmin \n- -K K max \n- -d distancemin\n -D distanceMax \n -a algoritmo (KNN o DT) \n -s saltar preprocesado (True o False) \n ')
             exit(1)
 
     if p == './':

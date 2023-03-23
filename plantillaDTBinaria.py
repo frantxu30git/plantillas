@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     print('ARGV   :',sys.argv[1:])
     try:
-        options,remainder = getopt.getopt(sys.argv[1:],'o:d:D:k:K:s:p:f:h:',['output=','k=','K=','d='])
+        options,remainder = getopt.getopt(sys.argv[1:],'o:d:D:k:K:a:s:p:f:h:',['output=','k=','K=','d=','a='])
     except getopt.GetoptError as err:
         print('ERROR:',err)
         sys.exit(1)
@@ -58,6 +58,8 @@ if __name__ == '__main__':
             Dmin = int(arg)
         elif opt ==  '-D':
             Dmax = int(arg)
+        elif opt == '-a':
+            alg= arg
         elif opt == '-s':
             saltarPreproceso= arg
         elif opt in ('-p', '--path'):
@@ -1136,107 +1138,107 @@ if __name__ == '__main__':
     
     Kmax=Kmax+1
     Dmax=Dmax+1
-    W=['uniform','distance']
-    mResultado={'k':0,'d':0,'w':'','f-score':0}
-    for k in range(int(Kmin),int(Kmax)):
-        if(k%2!=0):
+    mResultado={'k':0,'d':0,'f-score':0}
+    for k in range(int(Kmin),int(Kmax),3):
             for d in range(int(Dmin),int(Dmax)):
-                for w in W:
-                    #aplica el algoritmo KNN
-                    print("la k es: " + str(k))
-                    print("la d es: " + str(d))
-                    print('la w es:' + w)
-                    clf = KNeighborsClassifier(n_neighbors=int(k),
-                                        weights=w,
-                                        algorithm='auto',
-                                        leaf_size=30,
-                                        p=int(d))
+                #aplica el algoritmo KNN
+                print("la k es: " + str(k))
+                print("la d es: " + str(d))
+                
+                clf = DecisionTreeClassifier(
+                            random_state = 1337,
+                            criterion = 'gini',
+                            splitter = 'best',
+                            max_depth = k,
+                            min_samples_leaf = d
+                    )
 
-                    # Explica lo que se hace en este paso
+                # Explica lo que se hace en este paso
 
 
-                    #Balancea el resultado se asignará un peso mayor a las clases menos representadas en el conjunto de datos.
-                    clf.class_weight = "balanced"
+                #Balancea el resultado se asignará un peso mayor a las clases menos representadas en el conjunto de datos.
+                clf.class_weight = "balanced"
 #'min_samples_split','min_samples_leaf'
-                    # Explica lo que se hace en este paso
-                    #el clasificador se ajusta (fit) a los datos de entrenamiento (trainX, trainY), 
-                    # lo que significa que se ajustará a los patrones en los datos y aprenderá a clasificar nuevos datos.
-                    clf.fit(trainXUnder, trainYUnder)           
+                # Explica lo que se hace en este paso
+                #el clasificador se ajusta (fit) a los datos de entrenamiento (trainX, trainY), 
+                # lo que significa que se ajustará a los patrones en los datos y aprenderá a clasificar nuevos datos.
+                clf.fit(trainXUnder, trainYUnder)           
 
-        # Build up our result dataset
+    # Build up our result dataset
 
-        # The model is now trained, we can apply it to our test set:
+    # The model is now trained, we can apply it to our test set:
 
-                    predictions = clf.predict(testX)
-                    probas = clf.predict_proba(testX)
+                predictions = clf.predict(testX)
+                probas = clf.predict_proba(testX)
 
-                    predictions = pd.Series(data=predictions, index=testX.index, name='predicted_value')
-                    cols = [
-                        u'probability_of_value_%s' % label
-                        for (_, label) in sorted([(int(target_map[label]), label) for label in target_map])
-                    ]
-                    probabilities = pd.DataFrame(data=probas, index=testX.index, columns=cols)
-            # Build scored dataset
-                    results_test = testX.join(predictions, how='left')
-                    results_test = results_test.join(probabilities, how='left')
-                    results_test = results_test.join(test['__target__'], how='left')
-                    results_test = results_test.rename(columns= {'__target__': 'TARGET'})
+                predictions = pd.Series(data=predictions, index=testX.index, name='predicted_value')
+                cols = [
+                    u'probability_of_value_%s' % label
+                    for (_, label) in sorted([(int(target_map[label]), label) for label in target_map])
+                ]
+                probabilities = pd.DataFrame(data=probas, index=testX.index, columns=cols)
+        # Build scored dataset
+                results_test = testX.join(predictions, how='left')
+                results_test = results_test.join(probabilities, how='left')
+                results_test = results_test.join(test['__target__'], how='left')
+                results_test = results_test.rename(columns= {'__target__': 'TARGET'})
 
-                    i=0
-                    for real,pred in zip(testY,predictions):
-                        print(real,pred)
-                        i+=1
-                        if i>5:
-                            break
+                i=0
+                for real,pred in zip(testY,predictions):
+                    print(real,pred)
+                    i+=1
+                    if i>5:
+                        break
 
-                    print(f1_score(testY, predictions, average=None))
-                    print(classification_report(testY,predictions))
-                    print(confusion_matrix(testY, predictions, labels=[1,0]))
-                    # Save results to CSV
-                    report = classification_report(testY, predictions)
-                    # macro_precision= precision_score(testY, predictions, average='macro')
-                    # macro_recall= recall_score(testY, predictions, average='macro')
-                    # f1_score_macro= f1_score(testY, predictions, average='macro')
-                    # micro_precision= precision_score(testY, predictions, average='micro')
-                    # micro_recall= recall_score(testY, predictions, average='micro')
-                    # f1_score_micro= f1_score(testY, predictions, average='micro')
-                    cr = classification_report(testY,predictions,output_dict=True)
-                    precision = cr['0']['precision']
-                    recall= cr['0']['recall']
-                    # None_precision= precision_score(testY, predictions, average=None)
-                    # None_recall= recall_score(testY, predictions, average=None)
-                    fscore= f1_score(testY, predictions, average=None)[0]
-                    resultado={'k':k,'d':d,'w': w,'f-score':fscore}
-                    if(resultado['f-score']>mResultado['f-score']):
-                        mResultado=resultado
-                        print('Se ha actualizado el mejor f-score ' + str(mResultado['f-score']))
-                    # Check if the file exists
+                print(f1_score(testY, predictions, average=None))
+                print(classification_report(testY,predictions))
+                print(confusion_matrix(testY, predictions, labels=[1,0]))
+                # Save results to CSV
+                report = classification_report(testY, predictions)
+                # macro_precision= precision_score(testY, predictions, average='macro')
+                # macro_recall= recall_score(testY, predictions, average='macro')
+                # f1_score_macro= f1_score(testY, predictions, average='macro')
+                # micro_precision= precision_score(testY, predictions, average='micro')
+                # micro_recall= recall_score(testY, predictions, average='micro')
+                # f1_score_micro= f1_score(testY, predictions, average='micro')
+                cr = classification_report(testY,predictions,output_dict=True)
+                precision = cr['0']['precision']
+                recall= cr['0']['recall']
+                # None_precision= precision_score(testY, predictions, average=None)
+                # None_recall= recall_score(testY, predictions, average=None)
+                fscore= f1_score(testY, predictions, average=None)[0]
+                resultado={'k':k,'d':d,'f-score':fscore}
+                if(resultado['f-score']>mResultado['f-score']):
+                    mResultado=resultado
+                    print('Se ha actualizado el mejor f-score ' + str(mResultado['f-score']))
+                # Check if the file exists
 
-                    if os.path.isfile('resultados.csv'):
-                        # Append classification report to the file
-                        df = pd.read_csv('resultados.csv')
-                        cr = classification_report(testY,predictions)
-                        data = {'k': k, 'd': d, 'Weights': w,'precision': [precision],'recall': [recall],'f-score':[fscore]}
-                        new_df = pd.DataFrame(data)
-                        df = pd.concat([df, new_df], ignore_index=True)
-                        df.to_csv('resultados.csv', index=False)
-                    else:
-                    # Create a new file with classification report
-                        
-                        cm=confusion_matrix(testY, predictions, labels=[1,0])
-                        data = {'k': k, 'd': d, 'Weights': w,'precision': [precision],'recall': [recall],'f-score':[fscore]}
-                        df = pd.DataFrame(data)
-                        df.to_csv('resultados.csv', index=False)
+                if os.path.isfile('resultadosDTB.csv'):
+                    # Append classification report to the file
+                    df = pd.read_csv('resultadosDTB.csv')
+                    cr = classification_report(testY,predictions)
+                    data = {'k': k, 'd': d,'precision': [precision],'recall': [recall],'f-score':[fscore]}
+                    new_df = pd.DataFrame(data)
+                    df = pd.concat([df, new_df], ignore_index=True)
+                    df.to_csv('resultadosDTB.csv', index=False)
+                else:
+                # Create a new file with classification report
+                    
+                    cm=confusion_matrix(testY, predictions, labels=[1,0])
+                    data = {'k': k, 'd': d,'precision': [precision],'recall': [recall],'f-score':[fscore]}
+                    df = pd.DataFrame(data)
+                    df.to_csv('resultadosDTB.csv', index=False)
     #salvar modelo
     mk=mResultado['k']
     md=mResultado['d']
-    mw=mResultado['w']
-    print(f'el mejor modelo es  k {mk} y la mejor d es {md} y la mejor w es {mw}')
-    clf = KNeighborsClassifier(n_neighbors=mResultado['k'],
-                                        weights=mResultado['w'],
-                                        algorithm='auto',
-                                        leaf_size=30,
-                                        p=mResultado['d'])
+    print(f'el mejor modelo es  k {mk} y la mejor d es {md}')
+    clf = DecisionTreeClassifier(
+                            random_state = 1337,
+                            criterion = 'gini',
+                            splitter = 'best',
+                            max_depth = mk,
+                            min_samples_leaf = md
+                    )
 
                     # Explica lo que se hace en este paso
 
@@ -1248,8 +1250,8 @@ if __name__ == '__main__':
     #el clasificador se ajusta (fit) a los datos de entrenamiento (trainX, trainY), 
     # lo que significa que se ajustará a los patrones en los datos y aprenderá a clasificar nuevos datos.
     clf.fit(trainXUnder, trainYUnder)
-    nombreModel = 'modelo.sav'
-    savedmodel = pickle.dump(clf,open ('modelo.sav','wb'))
+    nombreModel = 'modeloDTBinaria.sav'
+    savedmodel = pickle.dump(clf,open (nombreModel,'wb'))
     print('guardado correctamente empleando Pickle')
-    
-print("Fin del programa")
+        
+    print("Fin del programa")
